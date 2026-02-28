@@ -34,6 +34,12 @@ export default function useKeyboardShortcuts(handlers, enabled = true) {
       } else if (key === 'Enter') {
         e.preventDefault();
         handlers.onMarkSegment?.();
+      } else if (key === 'z' && ctrl && shift) {
+        e.preventDefault();
+        handlers.onRedo?.();
+      } else if (key === 'y' && ctrl) {
+        e.preventDefault();
+        handlers.onRedo?.();
       } else if (key === 'z' && ctrl) {
         e.preventDefault();
         handlers.onUndo?.();

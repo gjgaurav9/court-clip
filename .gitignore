@@ -3,3 +3,13 @@ dist/
 .DS_Store
 *.local
 .env
+
+# Backend
+backend/__pycache__/
+backend/*.db
+backend/*.db-wal
+backend/*.db-shm
+*.pyc
+__pycache__/
+.venv/
+venv/
