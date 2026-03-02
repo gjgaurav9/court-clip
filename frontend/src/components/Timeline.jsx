@@ -11,7 +11,8 @@ function getRallyColor(rallyNumber) {
   return RALLY_COLORS[(rallyNumber - 1) % RALLY_COLORS.length];
 }
 
-export default function Timeline({ annotations, totalFrames, currentFrame, onSeek, fps }) {
+export default function Timeline({ annotations, filteredAnnotations, totalFrames, currentFrame, onSeek, fps }) {
+  const filteredIds = filteredAnnotations ? new Set(filteredAnnotations.map((a) => a.id)) : null;
   const [hoveredAnn, setHoveredAnn] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -70,6 +71,7 @@ export default function Timeline({ annotations, totalFrames, currentFrame, onSee
           const left = (ann.frameStart / totalFrames) * 100;
           const width = ((ann.frameEnd - ann.frameStart) / totalFrames) * 100;
           const color = getRallyColor(ann.rallyNumber);
+          const dimmed = filteredIds && !filteredIds.has(ann.id);
           return (
             <div
               key={ann.id}
@@ -77,8 +79,9 @@ export default function Timeline({ annotations, totalFrames, currentFrame, onSee
               style={{
                 left: `${left}%`,
                 width: `${Math.max(width, 0.3)}%`,
-                backgroundColor: `${color}99`,
-                borderColor: `${color}44`,
+                backgroundColor: `${color}${dimmed ? '30' : '99'}`,
+                borderColor: `${color}${dimmed ? '15' : '44'}`,
+                opacity: dimmed ? 0.4 : 1,
               }}
               onMouseEnter={(e) => {
                 setHoveredAnn(ann);

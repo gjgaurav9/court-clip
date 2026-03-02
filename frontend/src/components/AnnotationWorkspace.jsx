@@ -4,6 +4,8 @@ import VideoPlayer from './VideoPlayer';
 import Timeline from './Timeline';
 import LabelForm from './LabelForm';
 import AnnotationTable from './AnnotationTable';
+import Sidebar from './Sidebar';
+import FilterBar from './FilterBar';
 import useVideoControls from '../hooks/useVideoControls';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import useAnnotations from '../hooks/useAnnotations';
@@ -17,8 +19,10 @@ export default function AnnotationWorkspace() {
   const [showLabelForm, setShowLabelForm] = useState(false);
   const [pendingSegment, setPendingSegment] = useState(null);
   const [editingAnnotation, setEditingAnnotation] = useState(null);
+  const [editableFrames, setEditableFrames] = useState(false);
   const [project, setProject] = useState(null);
   const [projectLoading, setProjectLoading] = useState(true);
+  const [filters, setFilters] = useState({ rally: '', player: '', shotType: '' });
 
   // Load project info
   useEffect(() => {
@@ -47,11 +51,22 @@ export default function AnnotationWorkspace() {
     }).catch(() => {});
   }, [video.videoLoaded, video.videoFileName, video.fps, video.totalFrames, projectId]);
 
+  // Filtered annotations
+  const filteredAnnotations = useMemo(() => {
+    return ann.annotations.filter((a) => {
+      if (filters.rally && a.rallyNumber !== filters.rally) return false;
+      if (filters.player && a.playerId !== filters.player) return false;
+      if (filters.shotType && a.shotType !== filters.shotType) return false;
+      return true;
+    });
+  }, [ann.annotations, filters]);
+
   const handleMarkSegment = useCallback(() => {
     if (!video.videoLoaded) return;
     const result = ann.markSegment(video.currentFrame);
     if (result.action === 'end') {
       setPendingSegment({ frameStart: result.frameStart, frameEnd: result.frameEnd });
+      setEditableFrames(false);
       setShowLabelForm(true);
     }
   }, [video.videoLoaded, video.currentFrame, ann]);
@@ -60,9 +75,18 @@ export default function AnnotationWorkspace() {
     if (ann.annotations.length > 0 && !showLabelForm) {
       const last = ann.annotations[ann.annotations.length - 1];
       setEditingAnnotation(last);
+      setEditableFrames(false);
       setShowLabelForm(true);
     }
   }, [ann.annotations, showLabelForm]);
+
+  const handleAddShot = useCallback(() => {
+    if (!video.videoLoaded) return;
+    setPendingSegment({ frameStart: video.currentFrame, frameEnd: video.currentFrame });
+    setEditableFrames(true);
+    setEditingAnnotation(null);
+    setShowLabelForm(true);
+  }, [video.videoLoaded, video.currentFrame]);
 
   const handleSaveLabel = useCallback((data) => {
     if (editingAnnotation) {
@@ -73,17 +97,20 @@ export default function AnnotationWorkspace() {
     setShowLabelForm(false);
     setPendingSegment(null);
     setEditingAnnotation(null);
+    setEditableFrames(false);
   }, [editingAnnotation, ann]);
 
   const handleCancelLabel = useCallback(() => {
     setShowLabelForm(false);
     setPendingSegment(null);
     setEditingAnnotation(null);
+    setEditableFrames(false);
     ann.cancelMarking();
   }, [ann]);
 
   const handleEdit = useCallback((annotation) => {
     setEditingAnnotation(annotation);
+    setEditableFrames(false);
     setShowLabelForm(true);
   }, []);
 
@@ -149,6 +176,7 @@ export default function AnnotationWorkspace() {
           {video.videoLoaded && (
             <Timeline
               annotations={ann.annotations}
+              filteredAnnotations={filteredAnnotations}
               totalFrames={video.totalFrames}
               currentFrame={video.currentFrame}
               onSeek={video.seekToFrame}
@@ -157,8 +185,8 @@ export default function AnnotationWorkspace() {
           )}
         </div>
 
-        {/* Right sidebar: Label form */}
-        <div className="w-72 shrink-0">
+        {/* Right sidebar */}
+        <div className="w-80 shrink-0">
           {showLabelForm ? (
             <LabelForm
               segment={pendingSegment}
@@ -168,47 +196,33 @@ export default function AnnotationWorkspace() {
               onSave={handleSaveLabel}
               onCancel={handleCancelLabel}
               editingAnnotation={editingAnnotation}
+              editableFrames={editableFrames}
             />
           ) : (
-            <div className="bg-gray-800 rounded-lg p-4 text-sm text-gray-400 flex flex-col gap-3">
-              <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wide">Labeling</h3>
-              {ann.markingStart !== null ? (
-                <p className="text-yellow-400">
-                  Start marked at frame {ann.markingStart}. Press <kbd className="px-1 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd> to set end.
-                </p>
-              ) : (
-                <p>
-                  Press <kbd className="px-1 py-0.5 bg-gray-700 rounded text-xs">Enter</kbd> to mark segment start.
-                </p>
-              )}
-
-              {/* Export buttons */}
-              {ann.annotations.length > 0 && (
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-700">
-                  <button
-                    onClick={() => handleExport('csv')}
-                    className="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    onClick={() => handleExport('json')}
-                    className="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    Export JSON
-                  </button>
-                </div>
-              )}
-            </div>
+            <Sidebar
+              projectId={projectId}
+              annotations={ann.annotations}
+              filteredAnnotations={filteredAnnotations}
+              videoRef={video.videoRef}
+              fps={video.fps}
+              onSeek={video.seekToFrame}
+              onEdit={handleEdit}
+              onDelete={ann.deleteAnnotation}
+              onExport={handleExport}
+              onAddShot={handleAddShot}
+            />
           )}
         </div>
       </div>
 
-      {/* Annotation table */}
+      {/* Filter bar + Annotation table */}
       <div className="bg-gray-800/50 rounded-lg p-4">
-        <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">Annotations</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Annotations</h2>
+          <FilterBar filters={filters} onChange={setFilters} />
+        </div>
         <AnnotationTable
-          annotations={ann.annotations}
+          annotations={filteredAnnotations}
           onSeek={video.seekToFrame}
           onEdit={handleEdit}
           onDelete={ann.deleteAnnotation}

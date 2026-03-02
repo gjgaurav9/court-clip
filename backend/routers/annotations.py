@@ -90,6 +90,7 @@ def export_annotations(
         writer.writerow([
             "video_name", "rally_number", "shot_number", "player_id",
             "shot_type", "backhand", "around_head", "hit_area",
+            "player_area", "opponent_area",
             "frame_start", "frame_end", "duration_sec",
         ])
         for a in annotations:
@@ -98,6 +99,8 @@ def export_annotations(
                 a.rally_number, a.shot_number, a.player_id,
                 a.shot_type, int(a.backhand), int(a.around_head),
                 a.hit_area if a.hit_area is not None else "",
+                a.player_area if a.player_area is not None else "",
+                a.opponent_area if a.opponent_area is not None else "",
                 a.frame_start, a.frame_end, a.duration_sec,
             ])
         return StreamingResponse(
@@ -117,6 +120,8 @@ def export_annotations(
             "backhand": a.backhand,
             "around_head": a.around_head,
             "hit_area": a.hit_area,
+            "player_area": a.player_area,
+            "opponent_area": a.opponent_area,
             "frame_start": a.frame_start,
             "frame_end": a.frame_end,
             "duration_sec": a.duration_sec,

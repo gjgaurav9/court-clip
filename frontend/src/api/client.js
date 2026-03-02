@@ -65,5 +65,14 @@ export const annotations = {
     `${API_BASE}/projects/${projectId}/annotations/export?format=${format}`,
 };
 
+// --- Rallies ---
+export const rallies = {
+  list: (projectId) => request(`/projects/${projectId}/rallies`),
+  createOrUpdate: (projectId, data) =>
+    request(`/projects/${projectId}/rallies`, { method: 'POST', body: data }),
+  update: (projectId, rallyNumber, data) =>
+    request(`/projects/${projectId}/rallies/${rallyNumber}`, { method: 'PUT', body: data }),
+};
+
 // --- Health ---
 export const health = () => request('/health');

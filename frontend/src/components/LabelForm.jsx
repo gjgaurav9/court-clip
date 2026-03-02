@@ -15,6 +15,7 @@ export default function LabelForm({
   onSave,
   onCancel,
   editingAnnotation,
+  editableFrames = false,
 }) {
   const [rallyNumber, setRallyNumber] = useState(defaultRallyNumber);
   const [shotNumber, setShotNumber] = useState(defaultShotNumber);
@@ -23,6 +24,10 @@ export default function LabelForm({
   const [backhand, setBackhand] = useState(false);
   const [aroundHead, setAroundHead] = useState(false);
   const [hitArea, setHitArea] = useState(null);
+  const [playerArea, setPlayerArea] = useState(null);
+  const [opponentArea, setOpponentArea] = useState(null);
+  const [frameStartInput, setFrameStartInput] = useState(0);
+  const [frameEndInput, setFrameEndInput] = useState(0);
 
   // Pre-fill when editing
   useEffect(() => {
@@ -34,12 +39,19 @@ export default function LabelForm({
       setBackhand(editingAnnotation.backhand);
       setAroundHead(editingAnnotation.aroundHead);
       setHitArea(editingAnnotation.hitArea);
+      setPlayerArea(editingAnnotation.playerArea ?? null);
+      setOpponentArea(editingAnnotation.opponentArea ?? null);
+      setFrameStartInput(editingAnnotation.frameStart);
+      setFrameEndInput(editingAnnotation.frameEnd);
+    } else if (segment) {
+      setFrameStartInput(segment.frameStart);
+      setFrameEndInput(segment.frameEnd);
     }
-  }, [editingAnnotation]);
+  }, [editingAnnotation, segment]);
 
-  const frameStart = segment?.frameStart ?? editingAnnotation?.frameStart ?? 0;
-  const frameEnd = segment?.frameEnd ?? editingAnnotation?.frameEnd ?? 0;
-  const durationSec = ((frameEnd - frameStart) / fps).toFixed(3);
+  const frameStart = editableFrames ? frameStartInput : (segment?.frameStart ?? editingAnnotation?.frameStart ?? 0);
+  const frameEnd = editableFrames ? frameEndInput : (segment?.frameEnd ?? editingAnnotation?.frameEnd ?? 0);
+  const durationSec = fps > 0 ? ((frameEnd - frameStart) / fps).toFixed(3) : '0.000';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -51,6 +63,8 @@ export default function LabelForm({
       backhand,
       aroundHead,
       hitArea,
+      playerArea,
+      opponentArea,
       frameStart,
       frameEnd,
       durationSec: parseFloat(durationSec),
@@ -65,8 +79,27 @@ export default function LabelForm({
 
       {/* Frame info */}
       <div className="text-xs text-gray-400 flex gap-4">
-        <span>Frames: {frameStart} - {frameEnd}</span>
-        <span>Duration: {durationSec}s</span>
+        {editableFrames ? (
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <label className="flex flex-col gap-1">
+              <span>Frame Start</span>
+              <input type="number" min={0} value={frameStartInput}
+                onChange={(e) => setFrameStartInput(parseInt(e.target.value) || 0)}
+                className="bg-gray-700 rounded px-2 py-1 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span>Frame End</span>
+              <input type="number" min={0} value={frameEndInput}
+                onChange={(e) => setFrameEndInput(parseInt(e.target.value) || 0)}
+                className="bg-gray-700 rounded px-2 py-1 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none" />
+            </label>
+          </div>
+        ) : (
+          <>
+            <span>Frames: {frameStart} - {frameEnd}</span>
+            <span>Duration: {durationSec}s</span>
+          </>
+        )}
       </div>
 
       {/* Rally & Shot Number */}
@@ -74,9 +107,7 @@ export default function LabelForm({
         <label className="flex flex-col gap-1">
           <span className="text-xs text-gray-400">Rally #</span>
           <input
-            type="number"
-            min={1}
-            value={rallyNumber}
+            type="number" min={1} value={rallyNumber}
             onChange={(e) => setRallyNumber(parseInt(e.target.value) || 1)}
             className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
           />
@@ -84,9 +115,7 @@ export default function LabelForm({
         <label className="flex flex-col gap-1">
           <span className="text-xs text-gray-400">Shot #</span>
           <input
-            type="number"
-            min={1}
-            value={shotNumber}
+            type="number" min={1} value={shotNumber}
             onChange={(e) => setShotNumber(parseInt(e.target.value) || 1)}
             className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
           />
@@ -96,11 +125,8 @@ export default function LabelForm({
       {/* Player */}
       <label className="flex flex-col gap-1">
         <span className="text-xs text-gray-400">Player</span>
-        <select
-          value={playerId}
-          onChange={(e) => setPlayerId(e.target.value)}
-          className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
-        >
+        <select value={playerId} onChange={(e) => setPlayerId(e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none">
           <option>Player 1</option>
           <option>Player 2</option>
         </select>
@@ -109,58 +135,48 @@ export default function LabelForm({
       {/* Shot Type */}
       <label className="flex flex-col gap-1">
         <span className="text-xs text-gray-400">Shot Type</span>
-        <select
-          value={shotType}
-          onChange={(e) => setShotType(e.target.value)}
-          className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
-        >
-          {SHOT_TYPES.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
+        <select value={shotType} onChange={(e) => setShotType(e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none">
+          {SHOT_TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
       </label>
 
       {/* Toggles */}
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={backhand}
-            onChange={(e) => setBackhand(e.target.checked)}
-            className="w-4 h-4 accent-blue-500"
-          />
+          <input type="checkbox" checked={backhand} onChange={(e) => setBackhand(e.target.checked)} className="w-4 h-4 accent-blue-500" />
           <span className="text-sm text-gray-300">Backhand</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={aroundHead}
-            onChange={(e) => setAroundHead(e.target.checked)}
-            className="w-4 h-4 accent-blue-500"
-          />
+          <input type="checkbox" checked={aroundHead} onChange={(e) => setAroundHead(e.target.checked)} className="w-4 h-4 accent-blue-500" />
           <span className="text-sm text-gray-300">Around Head</span>
         </label>
       </div>
 
-      {/* Court Grid */}
-      <div>
-        <span className="text-xs text-gray-400">Hit Area</span>
-        <CourtGrid value={hitArea} onChange={setHitArea} />
+      {/* Court Grids — 3 side by side */}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <span className="text-xs text-gray-400 block text-center mb-1">Hit Area</span>
+          <CourtGrid value={hitArea} onChange={setHitArea} compact />
+        </div>
+        <div>
+          <span className="text-xs text-gray-400 block text-center mb-1">Player Area</span>
+          <CourtGrid value={playerArea} onChange={setPlayerArea} compact />
+        </div>
+        <div>
+          <span className="text-xs text-gray-400 block text-center mb-1">Opponent Area</span>
+          <CourtGrid value={opponentArea} onChange={setOpponentArea} compact />
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex gap-2 mt-1">
-        <button
-          type="submit"
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer"
-        >
+        <button type="submit"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer">
           {editingAnnotation ? 'Update' : 'Save'}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer"
-        >
+        <button type="button" onClick={onCancel}
+          className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer">
           Cancel
         </button>
       </div>

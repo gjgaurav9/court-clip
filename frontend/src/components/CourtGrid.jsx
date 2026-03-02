@@ -1,99 +1,106 @@
-const ROWS = 4;
-const COLS = 2;
-const ROW_LABELS = ['Front court', 'Mid front', 'Mid back', 'Back court'];
+// Badminton half-court zone layout (near player perspective, net at top)
+// Row 0 (front/net):  13, 9, 8, 7, 9, 13
+// Row 1 (mid court):   3, 5, 1, 2, 6, 4
+// Row 2 (back court): 14,15,16,10,11, 12
 
-export default function CourtGrid({ value, onChange }) {
+const ZONES = [
+  // row, col, zone, x, y, w, h  (in SVG units, court area is 300w x 360h)
+  // --- Front row (net side) ---
+  // Tramlines are narrower (30 units), inner cols are 60 units
+  { zone: 13, x: 0,   y: 0,   w: 30,  h: 90, label: '13' },
+  { zone: 9,  x: 30,  y: 0,   w: 60,  h: 90, label: '9' },
+  { zone: 8,  x: 90,  y: 0,   w: 60,  h: 90, label: '8' },
+  { zone: 7,  x: 150, y: 0,   w: 60,  h: 90, label: '7' },
+  { zone: 9,  x: 210, y: 0,   w: 60,  h: 90, label: '9', mirror: true },
+  { zone: 13, x: 270, y: 0,   w: 30,  h: 90, label: '13', mirror: true },
+
+  // --- Mid row (service court) ---
+  { zone: 3,  x: 0,   y: 90,  w: 30,  h: 150, label: '3' },
+  { zone: 5,  x: 30,  y: 90,  w: 60,  h: 150, label: '5' },
+  { zone: 1,  x: 90,  y: 90,  w: 60,  h: 150, label: '1' },
+  { zone: 2,  x: 150, y: 90,  w: 60,  h: 150, label: '2' },
+  { zone: 6,  x: 210, y: 90,  w: 60,  h: 150, label: '6' },
+  { zone: 4,  x: 270, y: 90,  w: 30,  h: 150, label: '4' },
+
+  // --- Back row (baseline) ---
+  { zone: 14, x: 0,   y: 240, w: 30,  h: 120, label: '14' },
+  { zone: 15, x: 30,  y: 240, w: 60,  h: 120, label: '15' },
+  { zone: 16, x: 90,  y: 240, w: 60,  h: 120, label: '16' },
+  { zone: 10, x: 150, y: 240, w: 60,  h: 120, label: '10' },
+  { zone: 11, x: 210, y: 240, w: 60,  h: 120, label: '11' },
+  { zone: 12, x: 270, y: 240, w: 30,  h: 120, label: '12' },
+];
+
+export default function CourtGrid({ value, onChange, compact = false }) {
+  const svgW = 300;
+  const svgH = 360;
+  const pad = 0;
+
   return (
     <div className="flex flex-col gap-1">
-      <div className="text-xs text-gray-400 text-center">Net Side</div>
-      <svg viewBox="0 0 200 300" className="w-full max-w-[180px] mx-auto">
+      {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Net</div>}
+      <svg
+        viewBox={`${-pad} ${-pad} ${svgW + pad * 2} ${svgH + pad * 2}`}
+        className={compact ? 'w-full max-w-[140px] mx-auto' : 'w-full max-w-[200px] mx-auto'}
+      >
         {/* Court surface */}
-        <rect x="10" y="10" width="180" height="280" fill="#1A5C2A" rx="2" />
+        <rect x="0" y="0" width={svgW} height={svgH} fill="#1A5C2A" rx="2" />
 
-        {/* Court outline */}
-        <rect x="10" y="10" width="180" height="280" fill="none" stroke="#FFFFFF" strokeWidth="2" rx="2" />
-
-        {/* Net line */}
-        <line x1="10" y1="14" x2="190" y2="14" stroke="#EF4444" strokeWidth="3" />
-
-        {/* Doubles sideline (tramlines) */}
-        <line x1="25" y1="10" x2="25" y2="290" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.5" />
-        <line x1="175" y1="10" x2="175" y2="290" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.5" />
-
-        {/* Center line (only in service area) */}
-        <line x1="100" y1="10" x2="100" y2="220" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.7" />
-
-        {/* Short service line */}
-        <line x1="10" y1="80" x2="190" y2="80" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.7" />
-
-        {/* Long service line (doubles) */}
-        <line x1="10" y1="220" x2="190" y2="220" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.5" />
-
-        {/* Mid-court division for 4 rows */}
-        <line x1="10" y1="150" x2="190" y2="150" stroke="#FFFFFF" strokeWidth="1" strokeOpacity="0.4" strokeDasharray="4" />
-
-        {/* Clickable zones — 4 rows x 2 cols = 8 zones, but we do 4x4 = 16 for finer granularity */}
-        {Array.from({ length: ROWS * 4 }, (_, idx) => {
-          const row = Math.floor(idx / 4);
-          const col = idx % 4;
-          const zone = idx + 1;
-          const x = 10 + col * 45;
-          const y = 10 + row * 70;
-          const isSelected = value === zone;
-
+        {/* Clickable zones */}
+        {ZONES.map((z, i) => {
+          const isSelected = value === z.zone;
           return (
-            <g key={zone} onClick={() => onChange(zone)} className="cursor-pointer">
-              {/* Selection highlight */}
+            <g key={i} onClick={() => onChange(z.zone)} className="cursor-pointer">
+              {/* Selection fill */}
               <rect
-                x={x}
-                y={y}
-                width={45}
-                height={70}
+                x={z.x} y={z.y} width={z.w} height={z.h}
                 fill={isSelected ? '#3B82F6' : 'transparent'}
-                fillOpacity={isSelected ? 0.5 : 0}
+                fillOpacity={isSelected ? 0.55 : 0}
                 stroke={isSelected ? '#60A5FA' : 'none'}
                 strokeWidth={isSelected ? 2 : 0}
               />
               {/* Hover area */}
               <rect
-                x={x}
-                y={y}
-                width={45}
-                height={70}
+                x={z.x} y={z.y} width={z.w} height={z.h}
                 fill="transparent"
                 className="hover:fill-blue-400/20"
               />
               {/* Zone number */}
               <text
-                x={x + 22.5}
-                y={y + 40}
+                x={z.x + z.w / 2}
+                y={z.y + z.h / 2 + 4}
                 textAnchor="middle"
-                fontSize="13"
-                fill={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.5)'}
+                fontSize={compact ? 10 : 13}
+                fill={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.55)'}
                 fontWeight={isSelected ? 'bold' : 'normal'}
               >
-                {zone}
+                {z.label}
               </text>
             </g>
           );
         })}
 
-        {/* Row labels on the right */}
-        {ROW_LABELS.map((label, i) => (
-          <text
-            key={label}
-            x="197"
-            y={10 + i * 70 + 40}
-            textAnchor="start"
-            fontSize="7"
-            fill="rgba(255,255,255,0.35)"
-            transform={`rotate(90, 197, ${10 + i * 70 + 40})`}
-          >
-            {label}
-          </text>
-        ))}
+        {/* Court lines */}
+        {/* Outer boundary */}
+        <rect x="0" y="0" width={svgW} height={svgH} fill="none" stroke="#FFF" strokeWidth="2" rx="2" />
+
+        {/* Net line (top) */}
+        <line x1="0" y1="2" x2={svgW} y2="2" stroke="#EF4444" strokeWidth="3" />
+
+        {/* Doubles sidelines (tramlines) */}
+        <line x1="30" y1="0" x2="30" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.6" />
+        <line x1="270" y1="0" x2="270" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.6" />
+
+        {/* Center line (from short service line to back) */}
+        <line x1="150" y1="90" x2="150" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.7" />
+
+        {/* Short service line */}
+        <line x1="0" y1="90" x2={svgW} y2="90" stroke="#FFF" strokeWidth="1.5" strokeOpacity="0.7" />
+
+        {/* Long service line (doubles) */}
+        <line x1="0" y1="240" x2={svgW} y2="240" stroke="#FFF" strokeWidth="1" strokeOpacity="0.5" />
       </svg>
-      <div className="text-xs text-gray-400 text-center">Baseline</div>
+      {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Baseline</div>}
     </div>
   );
 }

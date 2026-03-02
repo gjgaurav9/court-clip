@@ -24,6 +24,8 @@ export default function AnnotationTable({ annotations, onSeek, onEdit, onDelete 
             <th className="py-2 px-3">BH</th>
             <th className="py-2 px-3">AH</th>
             <th className="py-2 px-3">Area</th>
+            <th className="py-2 px-3">P.Area</th>
+            <th className="py-2 px-3">O.Area</th>
             <th className="py-2 px-3">Frames</th>
             <th className="py-2 px-3">Dur(s)</th>
             <th className="py-2 px-3"></th>
@@ -44,37 +46,19 @@ export default function AnnotationTable({ annotations, onSeek, onEdit, onDelete 
               <td className="py-2 px-3">{ann.backhand ? 'Y' : ''}</td>
               <td className="py-2 px-3">{ann.aroundHead ? 'Y' : ''}</td>
               <td className="py-2 px-3">{ann.hitArea ?? '-'}</td>
+              <td className="py-2 px-3">{ann.playerArea ?? '-'}</td>
+              <td className="py-2 px-3">{ann.opponentArea ?? '-'}</td>
               <td className="py-2 px-3 font-mono text-xs">{ann.frameStart}-{ann.frameEnd}</td>
               <td className="py-2 px-3 font-mono text-xs">{ann.durationSec}</td>
               <td className="py-2 px-3 flex gap-1" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => onEdit(ann)}
-                  className="text-blue-400 hover:text-blue-300 text-xs cursor-pointer"
-                >
-                  Edit
-                </button>
+                <button onClick={() => onEdit(ann)} className="text-blue-400 hover:text-blue-300 text-xs cursor-pointer">Edit</button>
                 {deleteConfirm === ann.id ? (
                   <span className="flex gap-1">
-                    <button
-                      onClick={() => { onDelete(ann.id); setDeleteConfirm(null); }}
-                      className="text-red-400 hover:text-red-300 text-xs cursor-pointer"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(null)}
-                      className="text-gray-400 text-xs cursor-pointer"
-                    >
-                      No
-                    </button>
+                    <button onClick={() => { onDelete(ann.id); setDeleteConfirm(null); }} className="text-red-400 hover:text-red-300 text-xs cursor-pointer">Confirm</button>
+                    <button onClick={() => setDeleteConfirm(null)} className="text-gray-400 text-xs cursor-pointer">No</button>
                   </span>
                 ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(ann.id)}
-                    className="text-red-400 hover:text-red-300 text-xs cursor-pointer"
-                  >
-                    Del
-                  </button>
+                  <button onClick={() => setDeleteConfirm(ann.id)} className="text-red-400 hover:text-red-300 text-xs cursor-pointer">Del</button>
                 )}
               </td>
             </tr>

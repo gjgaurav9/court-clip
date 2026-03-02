@@ -38,6 +38,8 @@ class AnnotationCreate(BaseModel):
     backhand: bool = False
     around_head: bool = False
     hit_area: int | None = None
+    player_area: int | None = None
+    opponent_area: int | None = None
     frame_start: int
     frame_end: int
     duration_sec: float
@@ -51,6 +53,8 @@ class AnnotationUpdate(BaseModel):
     backhand: bool | None = None
     around_head: bool | None = None
     hit_area: int | None = None
+    player_area: int | None = None
+    opponent_area: int | None = None
     frame_start: int | None = None
     frame_end: int | None = None
     duration_sec: float | None = None
@@ -66,8 +70,36 @@ class AnnotationOut(BaseModel):
     backhand: bool
     around_head: bool
     hit_area: int | None
+    player_area: int | None
+    opponent_area: int | None
     frame_start: int
     frame_end: int
     duration_sec: float
+
+    model_config = {"from_attributes": True}
+
+
+# --- Rally schemas ---
+
+class RallyCreate(BaseModel):
+    rally_number: int
+    winner_player_id: str | None = None
+    player1_score: int | None = None
+    player2_score: int | None = None
+
+
+class RallyUpdate(BaseModel):
+    winner_player_id: str | None = None
+    player1_score: int | None = None
+    player2_score: int | None = None
+
+
+class RallyOut(BaseModel):
+    id: int
+    project_id: int
+    rally_number: int
+    winner_player_id: str | None
+    player1_score: int | None
+    player2_score: int | None
 
     model_config = {"from_attributes": True}

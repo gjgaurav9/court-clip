@@ -17,6 +17,7 @@ class Project(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     annotations = relationship("Annotation", back_populates="project", cascade="all, delete-orphan")
+    rallies = relationship("Rally", back_populates="project", cascade="all, delete-orphan")
 
 
 class Annotation(Base):
@@ -31,8 +32,23 @@ class Annotation(Base):
     backhand = Column(Boolean, default=False)
     around_head = Column(Boolean, default=False)
     hit_area = Column(Integer, nullable=True)
+    player_area = Column(Integer, nullable=True)
+    opponent_area = Column(Integer, nullable=True)
     frame_start = Column(Integer, nullable=False)
     frame_end = Column(Integer, nullable=False)
     duration_sec = Column(Float, nullable=False)
 
     project = relationship("Project", back_populates="annotations")
+
+
+class Rally(Base):
+    __tablename__ = "rallies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    rally_number = Column(Integer, nullable=False)
+    winner_player_id = Column(String, nullable=True)
+    player1_score = Column(Integer, nullable=True)
+    player2_score = Column(Integer, nullable=True)
+
+    project = relationship("Project", back_populates="rallies")
