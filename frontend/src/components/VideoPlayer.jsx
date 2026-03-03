@@ -1,5 +1,7 @@
 import { useRef } from 'react';
 
+const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.5, 2];
+
 export default function VideoPlayer({
   videoRef,
   isPlaying,
@@ -11,6 +13,10 @@ export default function VideoPlayer({
   formatTime,
   onLoadVideo,
   markingStart,
+  playbackSpeed,
+  onSpeedChange,
+  storedVideoName,
+  onReloadStored,
 }) {
   const fileInputRef = useRef(null);
 
@@ -32,13 +38,37 @@ export default function VideoPlayer({
         />
         {!videoLoaded && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-            <p className="text-gray-400 text-lg">Load a video to start annotating</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
-            >
-              Open Video File
-            </button>
+            {storedVideoName ? (
+              <>
+                <p className="text-gray-400 text-sm">
+                  Previously loaded: <span className="text-white font-medium">{storedVideoName}</span>
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={onReloadStored}
+                    className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
+                  >
+                    Reload
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-5 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
+                  >
+                    Change video
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-400 text-lg">Load a video to start annotating</p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
+                >
+                  Open Video File
+                </button>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -69,8 +99,20 @@ export default function VideoPlayer({
               Time: <span className="text-white font-mono font-medium">{formatTime(currentFrame)}</span>
             </span>
           </div>
-          <div className="flex gap-6">
+          <div className="flex items-center gap-4">
             <span>FPS: <span className="text-white font-mono">{fps}</span></span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-400 text-xs">Speed:</span>
+              <select
+                value={playbackSpeed}
+                onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
+                className="bg-gray-700 text-white text-xs rounded px-1.5 py-0.5 border border-gray-600 focus:border-blue-500 focus:outline-none cursor-pointer"
+              >
+                {SPEED_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s}x</option>
+                ))}
+              </select>
+            </div>
             <span className={`font-medium ${isPlaying ? 'text-green-400' : 'text-yellow-400'}`}>
               {isPlaying ? 'Playing' : 'Paused'}
             </span>

@@ -1,104 +1,199 @@
-// Badminton half-court zone layout (near player perspective, net at top)
-// Row 0 (front/net):  13, 9, 8, 7, 9, 13
-// Row 1 (mid court):   3, 5, 1, 2, 6, 4
-// Row 2 (back court): 14,15,16,10,11, 12
+// Badminton court zone grid
+// Half-court layout (near player, net at top):
+//   Front/net row:  13 | 9 | 8 | 7 | 7 | 9 | 13   (7 cells, zone 7 straddles center)
+//   Mid row:         3 | 5 | 1 | 2 | 6 | 4         (6 cells)
+//   Back row:       14 |15 |16 |10 |11 | 12         (6 cells)
+//
+// Full court shows far player half (mirrored) on top, net, then near player half below.
 
-const ZONES = [
-  // row, col, zone, x, y, w, h  (in SVG units, court area is 300w x 360h)
-  // --- Front row (net side) ---
-  // Tramlines are narrower (30 units), inner cols are 60 units
-  { zone: 13, x: 0,   y: 0,   w: 30,  h: 90, label: '13' },
-  { zone: 9,  x: 30,  y: 0,   w: 60,  h: 90, label: '9' },
-  { zone: 8,  x: 90,  y: 0,   w: 60,  h: 90, label: '8' },
-  { zone: 7,  x: 150, y: 0,   w: 60,  h: 90, label: '7' },
-  { zone: 9,  x: 210, y: 0,   w: 60,  h: 90, label: '9', mirror: true },
-  { zone: 13, x: 270, y: 0,   w: 30,  h: 90, label: '13', mirror: true },
+const W = 300; // court width in SVG units
+const HALF_H = 360; // half court height
 
-  // --- Mid row (service court) ---
-  { zone: 3,  x: 0,   y: 90,  w: 30,  h: 150, label: '3' },
-  { zone: 5,  x: 30,  y: 90,  w: 60,  h: 150, label: '5' },
-  { zone: 1,  x: 90,  y: 90,  w: 60,  h: 150, label: '1' },
-  { zone: 2,  x: 150, y: 90,  w: 60,  h: 150, label: '2' },
-  { zone: 6,  x: 210, y: 90,  w: 60,  h: 150, label: '6' },
-  { zone: 4,  x: 270, y: 90,  w: 30,  h: 150, label: '4' },
+// Column edges: tramline(30) | inner(60) | center-left(60) | center-right(60) | inner(60) | tramline(30)
+const COL = [0, 30, 90, 150, 210, 270, 300];
 
-  // --- Back row (baseline) ---
-  { zone: 14, x: 0,   y: 240, w: 30,  h: 120, label: '14' },
-  { zone: 15, x: 30,  y: 240, w: 60,  h: 120, label: '15' },
-  { zone: 16, x: 90,  y: 240, w: 60,  h: 120, label: '16' },
-  { zone: 10, x: 150, y: 240, w: 60,  h: 120, label: '10' },
-  { zone: 11, x: 210, y: 240, w: 60,  h: 120, label: '11' },
-  { zone: 12, x: 270, y: 240, w: 30,  h: 120, label: '12' },
+// Row edges for a half court (net at y=0):
+// Front: 0-90, Mid: 90-240, Back: 240-360
+const ROW = [0, 90, 240, 360];
+
+// Near player half court zones (net at top)
+const NEAR_ZONES = [
+  // Front row (net) — zone 7 split into two 30-wide cells
+  { zone: 13, x: COL[0], y: ROW[0], w: 30,  h: 90 },
+  { zone: 9,  x: COL[1], y: ROW[0], w: 60,  h: 90 },
+  { zone: 8,  x: COL[2], y: ROW[0], w: 60,  h: 90 },
+  { zone: 7,  x: 150,    y: ROW[0], w: 30,  h: 90 },  // left half of 7
+  { zone: 7,  x: 180,    y: ROW[0], w: 30,  h: 90 },  // right half of 7
+  { zone: 9,  x: COL[4], y: ROW[0], w: 60,  h: 90 },
+  { zone: 13, x: COL[5], y: ROW[0], w: 30,  h: 90 },
+
+  // Mid row
+  { zone: 3,  x: COL[0], y: ROW[1], w: 30,  h: 150 },
+  { zone: 5,  x: COL[1], y: ROW[1], w: 60,  h: 150 },
+  { zone: 1,  x: COL[2], y: ROW[1], w: 60,  h: 150 },
+  { zone: 2,  x: COL[3], y: ROW[1], w: 60,  h: 150 },
+  { zone: 6,  x: COL[4], y: ROW[1], w: 60,  h: 150 },
+  { zone: 4,  x: COL[5], y: ROW[1], w: 30,  h: 150 },
+
+  // Back row
+  { zone: 14, x: COL[0], y: ROW[2], w: 30,  h: 120 },
+  { zone: 15, x: COL[1], y: ROW[2], w: 60,  h: 120 },
+  { zone: 16, x: COL[2], y: ROW[2], w: 60,  h: 120 },
+  { zone: 10, x: COL[3], y: ROW[2], w: 60,  h: 120 },
+  { zone: 11, x: COL[4], y: ROW[2], w: 60,  h: 120 },
+  { zone: 12, x: COL[5], y: ROW[2], w: 30,  h: 120 },
 ];
 
-export default function CourtGrid({ value, onChange, compact = false }) {
-  const svgW = 300;
-  const svgH = 360;
-  const pad = 0;
+// Far player half court zones (mirrored horizontally, rows flipped vertically)
+// Back row at top: 12,11,10,16,15,14
+// Mid row: 4,6,2,1,5,3
+// Front row at bottom (touching net): 13,9,8,7,7,9,13
+const FAR_ZONES = [
+  // Back row (top of far half)
+  { zone: 12, x: COL[0], y: 0,   w: 30,  h: 120 },
+  { zone: 11, x: COL[1], y: 0,   w: 60,  h: 120 },
+  { zone: 10, x: COL[2], y: 0,   w: 60,  h: 120 },
+  { zone: 16, x: COL[3], y: 0,   w: 60,  h: 120 },
+  { zone: 15, x: COL[4], y: 0,   w: 60,  h: 120 },
+  { zone: 14, x: COL[5], y: 0,   w: 30,  h: 120 },
 
+  // Mid row
+  { zone: 4,  x: COL[0], y: 120, w: 30,  h: 150 },
+  { zone: 6,  x: COL[1], y: 120, w: 60,  h: 150 },
+  { zone: 2,  x: COL[2], y: 120, w: 60,  h: 150 },
+  { zone: 1,  x: COL[3], y: 120, w: 60,  h: 150 },
+  { zone: 5,  x: COL[4], y: 120, w: 60,  h: 150 },
+  { zone: 3,  x: COL[5], y: 120, w: 30,  h: 150 },
+
+  // Front row (net side, bottom of far half)
+  { zone: 13, x: COL[0], y: 270, w: 30,  h: 90 },
+  { zone: 9,  x: COL[1], y: 270, w: 60,  h: 90 },
+  { zone: 8,  x: COL[2], y: 270, w: 60,  h: 90 },
+  { zone: 7,  x: 150,    y: 270, w: 30,  h: 90 },
+  { zone: 7,  x: 180,    y: 270, w: 30,  h: 90 },
+  { zone: 9,  x: COL[4], y: 270, w: 60,  h: 90 },
+  { zone: 13, x: COL[5], y: 270, w: 30,  h: 90 },
+];
+
+function CourtLines({ yOff = 0, h = HALF_H, netAtTop = true }) {
+  const netY = netAtTop ? yOff : yOff + h;
+  const shortServiceY = netAtTop ? yOff + 90 : yOff + h - 90;
+  const longServiceY = netAtTop ? yOff + 240 : yOff + h - 240;
+
+  return (
+    <g>
+      {/* Outer boundary */}
+      <rect x="0" y={yOff} width={W} height={h} fill="none" stroke="#FFF" strokeWidth="1.5" />
+
+      {/* Net line */}
+      <line x1="0" y1={netY} x2={W} y2={netY} stroke="#EF4444" strokeWidth="2.5" />
+
+      {/* Doubles sidelines (tramlines) */}
+      <line x1="30" y1={yOff} x2="30" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.6" />
+      <line x1="270" y1={yOff} x2="270" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.6" />
+
+      {/* Center line (from short service line to back boundary) */}
+      {netAtTop ? (
+        <line x1="150" y1={shortServiceY} x2="150" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
+      ) : (
+        <line x1="150" y1={yOff} x2="150" y2={shortServiceY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
+      )}
+
+      {/* Short service line */}
+      <line x1="0" y1={shortServiceY} x2={W} y2={shortServiceY} stroke="#FFF" strokeWidth="1.2" strokeOpacity="0.65" />
+
+      {/* Long service line (doubles) */}
+      <line x1="0" y1={longServiceY} x2={W} y2={longServiceY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.45" />
+    </g>
+  );
+}
+
+function ZoneCell({ z, yOff = 0, isSelected, onClick, compact }) {
+  const cx = z.x + z.w / 2;
+  const cy = yOff + z.y + z.h / 2;
+  const fontSize = compact ? 9 : 12;
+
+  return (
+    <g onClick={() => onClick(z.zone)} className="cursor-pointer">
+      <rect
+        x={z.x} y={yOff + z.y} width={z.w} height={z.h}
+        fill={isSelected ? '#3B82F6' : 'transparent'}
+        fillOpacity={isSelected ? 0.5 : 0}
+        stroke={isSelected ? '#60A5FA' : 'none'}
+        strokeWidth={isSelected ? 1.5 : 0}
+      />
+      <rect
+        x={z.x} y={yOff + z.y} width={z.w} height={z.h}
+        fill="transparent"
+        className="hover:fill-blue-400/20"
+      />
+      <text
+        x={cx} y={cy + fontSize * 0.35}
+        textAnchor="middle"
+        fontSize={fontSize}
+        fill={isSelected ? '#FFF' : 'rgba(255,255,255,0.5)'}
+        fontWeight={isSelected ? 'bold' : 'normal'}
+        style={{ userSelect: 'none' }}
+      >
+        {z.zone}
+      </text>
+    </g>
+  );
+}
+
+export default function CourtGrid({ value, onChange, compact = false, mode = 'half' }) {
+  if (mode === 'full') {
+    // Full court: far half (top) + net gap + near half (bottom)
+    const gap = 16; // net gap
+    const totalH = HALF_H * 2 + gap;
+
+    return (
+      <div className="flex flex-col gap-1">
+        {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Far Player</div>}
+        <svg
+          viewBox={`0 0 ${W} ${totalH}`}
+          className={compact ? 'w-full max-w-[140px] mx-auto' : 'w-full max-w-[220px] mx-auto'}
+        >
+          {/* Far half background */}
+          <rect x="0" y="0" width={W} height={HALF_H} fill="#1A5C2A" />
+          {/* Net gap */}
+          <rect x="0" y={HALF_H} width={W} height={gap} fill="#374151" />
+          <text x={W / 2} y={HALF_H + gap / 2 + 3} textAnchor="middle" fontSize="8" fill="#9CA3AF">NET</text>
+          {/* Near half background */}
+          <rect x="0" y={HALF_H + gap} width={W} height={HALF_H} fill="#1A5C2A" />
+
+          {/* Far half zones */}
+          {FAR_ZONES.map((z, i) => (
+            <ZoneCell key={`f${i}`} z={z} yOff={0} isSelected={value === z.zone} onClick={onChange} compact={compact} />
+          ))}
+          <CourtLines yOff={0} h={HALF_H} netAtTop={false} />
+
+          {/* Near half zones */}
+          {NEAR_ZONES.map((z, i) => (
+            <ZoneCell key={`n${i}`} z={z} yOff={HALF_H + gap} isSelected={value === z.zone} onClick={onChange} compact={compact} />
+          ))}
+          <CourtLines yOff={HALF_H + gap} h={HALF_H} netAtTop={true} />
+        </svg>
+        {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Near Player</div>}
+      </div>
+    );
+  }
+
+  // Half court mode (default)
   return (
     <div className="flex flex-col gap-1">
       {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Net</div>}
       <svg
-        viewBox={`${-pad} ${-pad} ${svgW + pad * 2} ${svgH + pad * 2}`}
+        viewBox={`0 0 ${W} ${HALF_H}`}
         className={compact ? 'w-full max-w-[140px] mx-auto' : 'w-full max-w-[200px] mx-auto'}
       >
-        {/* Court surface */}
-        <rect x="0" y="0" width={svgW} height={svgH} fill="#1A5C2A" rx="2" />
+        <rect x="0" y="0" width={W} height={HALF_H} fill="#1A5C2A" rx="2" />
 
-        {/* Clickable zones */}
-        {ZONES.map((z, i) => {
-          const isSelected = value === z.zone;
-          return (
-            <g key={i} onClick={() => onChange(z.zone)} className="cursor-pointer">
-              {/* Selection fill */}
-              <rect
-                x={z.x} y={z.y} width={z.w} height={z.h}
-                fill={isSelected ? '#3B82F6' : 'transparent'}
-                fillOpacity={isSelected ? 0.55 : 0}
-                stroke={isSelected ? '#60A5FA' : 'none'}
-                strokeWidth={isSelected ? 2 : 0}
-              />
-              {/* Hover area */}
-              <rect
-                x={z.x} y={z.y} width={z.w} height={z.h}
-                fill="transparent"
-                className="hover:fill-blue-400/20"
-              />
-              {/* Zone number */}
-              <text
-                x={z.x + z.w / 2}
-                y={z.y + z.h / 2 + 4}
-                textAnchor="middle"
-                fontSize={compact ? 10 : 13}
-                fill={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.55)'}
-                fontWeight={isSelected ? 'bold' : 'normal'}
-              >
-                {z.label}
-              </text>
-            </g>
-          );
-        })}
+        {NEAR_ZONES.map((z, i) => (
+          <ZoneCell key={i} z={z} yOff={0} isSelected={value === z.zone} onClick={onChange} compact={compact} />
+        ))}
 
-        {/* Court lines */}
-        {/* Outer boundary */}
-        <rect x="0" y="0" width={svgW} height={svgH} fill="none" stroke="#FFF" strokeWidth="2" rx="2" />
-
-        {/* Net line (top) */}
-        <line x1="0" y1="2" x2={svgW} y2="2" stroke="#EF4444" strokeWidth="3" />
-
-        {/* Doubles sidelines (tramlines) */}
-        <line x1="30" y1="0" x2="30" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.6" />
-        <line x1="270" y1="0" x2="270" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.6" />
-
-        {/* Center line (from short service line to back) */}
-        <line x1="150" y1="90" x2="150" y2={svgH} stroke="#FFF" strokeWidth="1" strokeOpacity="0.7" />
-
-        {/* Short service line */}
-        <line x1="0" y1="90" x2={svgW} y2="90" stroke="#FFF" strokeWidth="1.5" strokeOpacity="0.7" />
-
-        {/* Long service line (doubles) */}
-        <line x1="0" y1="240" x2={svgW} y2="240" stroke="#FFF" strokeWidth="1" strokeOpacity="0.5" />
+        <CourtLines yOff={0} h={HALF_H} netAtTop={true} />
       </svg>
       {!compact && <div className="text-[10px] text-gray-500 text-center uppercase tracking-wider">Baseline</div>}
     </div>

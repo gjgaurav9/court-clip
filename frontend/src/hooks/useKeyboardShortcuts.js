@@ -43,6 +43,12 @@ export default function useKeyboardShortcuts(handlers, enabled = true) {
       } else if (key === 'z' && ctrl) {
         e.preventDefault();
         handlers.onUndo?.();
+      } else if (key === '[') {
+        e.preventDefault();
+        handlers.onDecreaseSpeed?.();
+      } else if (key === ']') {
+        e.preventDefault();
+        handlers.onIncreaseSpeed?.();
       }
     };
 

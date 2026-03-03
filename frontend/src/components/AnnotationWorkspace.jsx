@@ -13,7 +13,7 @@ import { annotations as annotationsApi, projects as projectsApi } from '../api/c
 
 export default function AnnotationWorkspace() {
   const { id: projectId } = useParams();
-  const video = useVideoControls();
+  const video = useVideoControls(projectId);
   const ann = useAnnotations(projectId);
 
   const [showLabelForm, setShowLabelForm] = useState(false);
@@ -65,28 +65,31 @@ export default function AnnotationWorkspace() {
     if (!video.videoLoaded) return;
     const result = ann.markSegment(video.currentFrame);
     if (result.action === 'end') {
+      video.pause();
       setPendingSegment({ frameStart: result.frameStart, frameEnd: result.frameEnd });
       setEditableFrames(false);
       setShowLabelForm(true);
     }
-  }, [video.videoLoaded, video.currentFrame, ann]);
+  }, [video, ann]);
 
   const handleOpenLabel = useCallback(() => {
     if (ann.annotations.length > 0 && !showLabelForm) {
+      video.pause();
       const last = ann.annotations[ann.annotations.length - 1];
       setEditingAnnotation(last);
       setEditableFrames(false);
       setShowLabelForm(true);
     }
-  }, [ann.annotations, showLabelForm]);
+  }, [ann.annotations, showLabelForm, video]);
 
   const handleAddShot = useCallback(() => {
     if (!video.videoLoaded) return;
+    video.pause();
     setPendingSegment({ frameStart: video.currentFrame, frameEnd: video.currentFrame });
     setEditableFrames(true);
     setEditingAnnotation(null);
     setShowLabelForm(true);
-  }, [video.videoLoaded, video.currentFrame]);
+  }, [video]);
 
   const handleSaveLabel = useCallback((data) => {
     if (editingAnnotation) {
@@ -109,10 +112,11 @@ export default function AnnotationWorkspace() {
   }, [ann]);
 
   const handleEdit = useCallback((annotation) => {
+    video.pause();
     setEditingAnnotation(annotation);
     setEditableFrames(false);
     setShowLabelForm(true);
-  }, []);
+  }, [video]);
 
   const handleExport = useCallback((format) => {
     window.open(annotationsApi.exportUrl(projectId, format), '_blank');
@@ -128,6 +132,8 @@ export default function AnnotationWorkspace() {
     onOpenLabel: handleOpenLabel,
     onUndo: ann.undo,
     onRedo: ann.redo,
+    onIncreaseSpeed: video.increaseSpeed,
+    onDecreaseSpeed: video.decreaseSpeed,
   }), [video, handleMarkSegment, handleOpenLabel, ann]);
 
   useKeyboardShortcuts(shortcutHandlers, !showLabelForm);
@@ -170,6 +176,10 @@ export default function AnnotationWorkspace() {
             formatTime={video.formatTime}
             onLoadVideo={video.loadVideo}
             markingStart={ann.markingStart}
+            playbackSpeed={video.playbackSpeed}
+            onSpeedChange={video.setPlaybackSpeed}
+            storedVideoName={video.storedVideoName}
+            onReloadStored={video.reloadStoredVideo}
           />
 
           {/* Timeline */}
@@ -236,6 +246,7 @@ export default function AnnotationWorkspace() {
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Shift+&larr;&rarr;</kbd> Skip 10</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Enter</kbd> Mark segment</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Shift+Enter</kbd> Edit label</span>
+        <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">[ ]</kbd> Speed -/+</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Z</kbd> Undo</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Shift+Z</kbd> Redo</span>
       </div>
