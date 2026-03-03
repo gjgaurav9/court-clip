@@ -29,7 +29,7 @@ _migrate()
 app = FastAPI(title="CourtClip API", version="1.0.0")
 
 # CORS — allow frontend origins
-origins = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+origins = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,app://-").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

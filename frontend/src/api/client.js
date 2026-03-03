@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = window.electronAPI?.isElectron ? 'http://127.0.0.1:8000/api' : '/api';
 
 // snake_case <-> camelCase conversion
 function toSnake(str) {

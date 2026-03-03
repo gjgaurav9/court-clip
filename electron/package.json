@@ -1,0 +1,51 @@
+{
+  "name": "courtclip-desktop",
+  "version": "1.0.0",
+  "description": "CourtClip — Tennis match annotation desktop app",
+  "main": "main.js",
+  "scripts": {
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0"
+  },
+  "build": {
+    "appId": "com.courtclip.desktop",
+    "productName": "CourtClip",
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
+      },
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!__pycache__/**",
+          "!*.db",
+          "!*.db-wal",
+          "!*.db-shm"
+        ]
+      }
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
