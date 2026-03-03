@@ -14,6 +14,7 @@ export default function useVideoControls(projectId) {
   const [videoFileName, setVideoFileName] = useState('');
   const [playbackSpeed, setPlaybackSpeedState] = useState(1);
   const [storedVideoName, setStoredVideoName] = useState(null);
+  const [videoFilePath, setVideoFilePath] = useState(null);
   const seekingRef = useRef(false);
   const pendingSeekRef = useRef(null);
   const rvfcHandleRef = useRef(null);
@@ -116,6 +117,7 @@ export default function useVideoControls(projectId) {
     const url = URL.createObjectURL(file);
     video.src = url;
     setVideoFileName(file.name);
+    setVideoFilePath(file.path || null); // file.path is available in Electron
     setStoredVideoName(null);
 
     video.onloadedmetadata = () => {
@@ -226,6 +228,7 @@ export default function useVideoControls(projectId) {
     loadVideo,
     reloadStoredVideo,
     storedVideoName,
+    videoFilePath,
     formatTime,
   };
 }

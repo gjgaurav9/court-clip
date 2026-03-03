@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import CourtGrid from './CourtGrid';
 
-const SHOT_TYPES = [
+const DEFAULT_SHOT_TYPES = [
   'Short Serve', 'Long Serve', 'Toss', 'Lift', 'Dribble',
   'Smash', 'Jump Smash', 'Tab', 'Block', 'Drive',
   'Low Drop', 'High Drop', 'Netkill',
 ];
+
+const STORAGE_KEY = 'courtclip-custom-shot-types';
+
+function loadShotTypes() {
+  try {
+    const custom = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    return [...DEFAULT_SHOT_TYPES, ...custom];
+  } catch {
+    return [...DEFAULT_SHOT_TYPES];
+  }
+}
 
 export default function LabelForm({
   segment,
@@ -17,6 +28,7 @@ export default function LabelForm({
   editingAnnotation,
   editableFrames = false,
 }) {
+  const [shotTypes, setShotTypes] = useState(loadShotTypes);
   const [rallyNumber, setRallyNumber] = useState(defaultRallyNumber);
   const [shotNumber, setShotNumber] = useState(defaultShotNumber);
   const [playerId, setPlayerId] = useState('Player 1');
@@ -28,6 +40,19 @@ export default function LabelForm({
   const [opponentArea, setOpponentArea] = useState(null);
   const [frameStartInput, setFrameStartInput] = useState(0);
   const [frameEndInput, setFrameEndInput] = useState(0);
+
+  const handleAddShotType = () => {
+    const name = window.prompt('Enter new shot type name:');
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (shotTypes.includes(trimmed)) return;
+    const newTypes = [...shotTypes, trimmed];
+    setShotTypes(newTypes);
+    setShotType(trimmed);
+    // Persist only custom types
+    const custom = newTypes.filter((t) => !DEFAULT_SHOT_TYPES.includes(t));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
+  };
 
   // Pre-fill when editing
   useEffect(() => {
@@ -133,13 +158,18 @@ export default function LabelForm({
       </label>
 
       {/* Shot Type */}
-      <label className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <span className="text-xs text-gray-400">Shot Type</span>
-        <select value={shotType} onChange={(e) => setShotType(e.target.value)}
-          className="bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none">
-          {SHOT_TYPES.map((t) => <option key={t}>{t}</option>)}
-        </select>
-      </label>
+        <div className="flex gap-1">
+          <select value={shotType} onChange={(e) => setShotType(e.target.value)}
+            className="flex-1 bg-gray-700 rounded px-2 py-1.5 text-sm text-white border border-gray-600 focus:border-blue-500 focus:outline-none">
+            {shotTypes.map((t) => <option key={t}>{t}</option>)}
+          </select>
+          <button type="button" onClick={handleAddShotType}
+            className="bg-gray-600 hover:bg-gray-500 text-white px-2.5 rounded text-sm font-bold transition-colors cursor-pointer"
+            title="Add custom shot type">+</button>
+        </div>
+      </div>
 
       {/* Toggles */}
       <div className="flex gap-6">

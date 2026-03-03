@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -127,6 +127,54 @@ async function createWindow() {
     mainWindow = null;
   });
 }
+
+// IPC: directory picker
+ipcMain.handle('choose-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Choose output folder for clips',
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+// IPC: export clips via ffmpeg
+ipcMain.handle('export-clips', async (event, videoPath, clips, outputDir) => {
+  let success = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const clip of clips) {
+    const outputPath = path.join(outputDir, clip.filename);
+    try {
+      await new Promise((resolve, reject) => {
+        const args = [
+          '-y',
+          '-ss', String(clip.startTime),
+          '-i', videoPath,
+          '-t', String(clip.duration),
+          '-c:v', 'libx264',
+          '-c:a', 'aac',
+          outputPath,
+        ];
+        const proc = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+        let stderr = '';
+        proc.stderr.on('data', (data) => { stderr += data.toString(); });
+        proc.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg exited with code ${code}: ${stderr.slice(-200)}`));
+        });
+        proc.on('error', reject);
+      });
+      success++;
+    } catch (err) {
+      failed++;
+      errors.push(`${clip.filename}: ${err.message}`);
+    }
+  }
+
+  return { success, failed, errors };
+});
 
 app.on('ready', createWindow);
 

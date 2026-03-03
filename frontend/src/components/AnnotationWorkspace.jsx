@@ -65,6 +65,18 @@ export default function AnnotationWorkspace() {
     if (!video.videoLoaded) return;
     const result = ann.markSegment(video.currentFrame);
     if (result.action === 'end') {
+      const segLen = result.frameEnd - result.frameStart;
+      if (segLen < 5) {
+        if (!window.confirm(`Only ${segLen} frame${segLen !== 1 ? 's' : ''} — continue?`)) {
+          ann.cancelMarking();
+          return;
+        }
+      } else if (segLen > 300) {
+        if (!window.confirm(`${segLen} frames is very long — continue?`)) {
+          ann.cancelMarking();
+          return;
+        }
+      }
       video.pause();
       setPendingSegment({ frameStart: result.frameStart, frameEnd: result.frameEnd });
       setEditableFrames(false);
@@ -126,8 +138,8 @@ export default function AnnotationWorkspace() {
     onTogglePlay: video.togglePlay,
     onNextFrame: video.nextFrame,
     onPrevFrame: video.prevFrame,
-    onSkipForward: () => video.skipForward(10),
-    onSkipBackward: () => video.skipBackward(10),
+    onSkipForward: () => video.skipForward(30),
+    onSkipBackward: () => video.skipBackward(30),
     onMarkSegment: handleMarkSegment,
     onOpenLabel: handleOpenLabel,
     onUndo: ann.undo,
@@ -137,6 +149,16 @@ export default function AnnotationWorkspace() {
   }), [video, handleMarkSegment, handleOpenLabel, ann]);
 
   useKeyboardShortcuts(shortcutHandlers, !showLabelForm);
+
+  // Coverage calculation
+  const coverage = useMemo(() => {
+    if (!video.videoLoaded || video.totalFrames === 0 || ann.annotations.length === 0) return 0;
+    const covered = new Set();
+    for (const a of ann.annotations) {
+      for (let f = a.frameStart; f <= a.frameEnd; f++) covered.add(f);
+    }
+    return (covered.size / video.totalFrames) * 100;
+  }, [ann.annotations, video.videoLoaded, video.totalFrames]);
 
   const defaultRally = ann.getNextRallyNumber();
   const defaultShot = ann.getNextShotNumber(defaultRally);
@@ -220,10 +242,25 @@ export default function AnnotationWorkspace() {
               onDelete={ann.deleteAnnotation}
               onExport={handleExport}
               onAddShot={handleAddShot}
+              videoFilePath={video.videoFilePath}
             />
           )}
         </div>
       </div>
+
+      {/* Coverage progress bar */}
+      {video.videoLoaded && (
+        <div className="flex items-center gap-3 px-1">
+          <span className="text-xs text-gray-400 shrink-0">Coverage</span>
+          <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(coverage, 100)}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-400 w-12 text-right">{coverage.toFixed(1)}%</span>
+        </div>
+      )}
 
       {/* Filter bar + Annotation table */}
       <div className="bg-gray-800/50 rounded-lg p-4">
@@ -240,15 +277,20 @@ export default function AnnotationWorkspace() {
       </div>
 
       {/* Keyboard shortcuts bar */}
-      <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 px-2">
+      <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 px-2 items-center">
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Space</kbd> Play/Pause</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">&larr;&rarr;</kbd> Frame step</span>
-        <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Shift+&larr;&rarr;</kbd> Skip 10</span>
+        <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Shift+&larr;&rarr;</kbd> Skip 30</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Enter</kbd> Mark segment</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Shift+Enter</kbd> Edit label</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">[ ]</kbd> Speed -/+</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Z</kbd> Undo</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Shift+Z</kbd> Redo</span>
+        {ann.lastSyncTime && (
+          <span className="ml-auto text-gray-600">
+            Last saved: {ann.lastSyncTime.toLocaleTimeString()}
+          </span>
+        )}
       </div>
     </div>
   );

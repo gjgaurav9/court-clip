@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { rallies as ralliesApi } from '../api/client';
+import MiniPlayer from './MiniPlayer';
 
 const TABS = ['Segments', 'Stats', 'Rallies'];
 
@@ -15,10 +16,12 @@ export default function Sidebar({
   onExport,
   onAddShot,
   currentRallyNumber,
+  videoFilePath,
 }) {
   const [activeTab, setActiveTab] = useState('Segments');
   const [rallies, setRallies] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [previewAnnotation, setPreviewAnnotation] = useState(null);
 
   // Load rallies
   useEffect(() => {
@@ -47,17 +50,36 @@ export default function Sidebar({
 
   const handlePreview = useCallback((ann) => {
     if (!videoRef?.current || !fps) return;
-    const vid = videoRef.current;
-    vid.currentTime = ann.frameStart / fps;
-    vid.play();
-    const checkEnd = () => {
-      if (vid.currentTime >= ann.frameEnd / fps) {
-        vid.pause();
-        vid.removeEventListener('timeupdate', checkEnd);
-      }
-    };
-    vid.addEventListener('timeupdate', checkEnd);
+    setPreviewAnnotation(ann);
   }, [videoRef, fps]);
+
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportClips = useCallback(async () => {
+    if (!window.electronAPI?.exportClips || !videoFilePath) return;
+    const outputDir = await window.electronAPI.chooseDirectory();
+    if (!outputDir) return;
+
+    const clips = annotations.map((a) => ({
+      filename: `R${a.rallyNumber}_S${a.shotNumber}_${a.playerId}_${a.shotType}.mp4`.replace(/\s+/g, ''),
+      startTime: a.frameStart / fps,
+      duration: (a.frameEnd - a.frameStart) / fps,
+    }));
+
+    setExporting(true);
+    try {
+      const result = await window.electronAPI.exportClips(videoFilePath, clips, outputDir);
+      if (result.failed > 0) {
+        alert(`Exported ${result.success} clips, ${result.failed} failed.\n${result.errors.join('\n')}`);
+      } else {
+        alert(`Exported ${result.success} clips successfully!`);
+      }
+    } catch (err) {
+      alert('Export failed: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  }, [annotations, fps, videoFilePath]);
 
   // Group annotations by rally
   const rallyGroups = {};
@@ -274,7 +296,24 @@ export default function Sidebar({
             className="w-full bg-green-700 hover:bg-green-600 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer">
             Export JSON
           </button>
+          {window.electronAPI?.isElectron && videoFilePath && (
+            <button onClick={handleExportClips} disabled={exporting}
+              className="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-white py-2 rounded text-sm font-medium transition-colors cursor-pointer">
+              {exporting ? 'Exporting...' : 'Export MP4 Clips'}
+            </button>
+          )}
         </div>
+      )}
+
+      {/* Mini player modal */}
+      {previewAnnotation && videoRef?.current?.src && (
+        <MiniPlayer
+          videoSrc={videoRef.current.src}
+          frameStart={previewAnnotation.frameStart}
+          frameEnd={previewAnnotation.frameEnd}
+          fps={fps}
+          onClose={() => setPreviewAnnotation(null)}
+        />
       )}
     </div>
   );

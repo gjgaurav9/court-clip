@@ -6,6 +6,7 @@ export default function useAnnotations(projectId) {
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [syncError, setSyncError] = useState(null);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   const [loading, setLoading] = useState(!!projectId);
 
   // Segment marking state
@@ -60,6 +61,7 @@ export default function useAnnotations(projectId) {
       try {
         setSyncError(null);
         const saved = await api.create(projectIdRef.current, annotation);
+        setLastSyncTime(new Date());
         // Replace temp id with server id
         setAnnotations((prev) =>
           prev.map((a) => (a.id === tempId ? saved : a))
@@ -97,6 +99,7 @@ export default function useAnnotations(projectId) {
       try {
         setSyncError(null);
         await api.update(projectIdRef.current, id, updates);
+        setLastSyncTime(new Date());
       } catch (err) {
         setSyncError(err.message);
         // Rollback
@@ -126,6 +129,7 @@ export default function useAnnotations(projectId) {
       try {
         setSyncError(null);
         await api.delete(projectIdRef.current, id);
+        setLastSyncTime(new Date());
       } catch (err) {
         setSyncError(err.message);
         // Rollback
@@ -273,6 +277,7 @@ export default function useAnnotations(projectId) {
     markingStart,
     loading,
     syncError,
+    lastSyncTime,
     addAnnotation,
     updateAnnotation,
     deleteAnnotation,
