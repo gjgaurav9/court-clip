@@ -183,6 +183,16 @@ export default function LabelForm({
         </label>
       </div>
 
+      {/*Reference Image Section*/}
+      <div className="flex flex-col gap-1 mt-2">
+        <span className="text-xs text-gray-400 text-center uppercase tracking-wider">Court Reference Map</span>
+        <img
+          src="https://lh3.googleusercontent.com/d/13YS9WdemRagEqrRFLVDrF3x7hah31DM0"
+          alt="Badminton court zones reference"
+          className="w-full h-auto rounded border border-gray-600 object-contain"
+        />
+      </div>
+
       {/* Court Grids — 3 side by side */}
       <div className="grid grid-cols-3 gap-2">
         <div>
