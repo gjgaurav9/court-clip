@@ -1,84 +1,74 @@
 // Badminton court zone grid
 // Half-court layout (near player, net at top):
-//   Front/net row:  13 | 9 | 8 | 7 | 7 | 9 | 13   (7 cells, zone 7 straddles center)
-//   Mid row:         3 | 5 | 1 | 2 | 6 | 4         (6 cells)
-//   Back row:       14 |15 |16 |10 |11 | 12         (6 cells)
-//
-// Full court shows far player half (mirrored) on top, net, then near player half below.
+// Grid horizontally divided into: Tramline(30) | Inner(60) | Center(120) | Inner(60) | Tramline(30)
+// Grid vertically divided into: Front(90) | Mid(150) | Back(120, with center cutout for zone 13)
 
 const W = 300; // court width in SVG units
 const HALF_H = 360; // half court height
 
-// Column edges: tramline(30) | inner(60) | center-left(60) | center-right(60) | inner(60) | tramline(30)
-const COL = [0, 30, 90, 150, 210, 270, 300];
-
-// Row edges for a half court (net at y=0):
-// Front: 0-90, Mid: 90-240, Back: 240-360
-const ROW = [0, 90, 240, 360];
-
-// Near player half court zones (net at top)
+// Near player half court zones (net at top, y=0)
 const NEAR_ZONES = [
-  // Front row (net) — zone 7 split into two 30-wide cells
-  { zone: 13, x: COL[0], y: ROW[0], w: 30,  h: 90 },
-  { zone: 9,  x: COL[1], y: ROW[0], w: 60,  h: 90 },
-  { zone: 8,  x: COL[2], y: ROW[0], w: 60,  h: 90 },
-  { zone: 7,  x: 150,    y: ROW[0], w: 30,  h: 90 },  // left half of 7
-  { zone: 7,  x: 180,    y: ROW[0], w: 30,  h: 90 },  // right half of 7
-  { zone: 9,  x: COL[4], y: ROW[0], w: 60,  h: 90 },
-  { zone: 13, x: COL[5], y: ROW[0], w: 30,  h: 90 },
+  // Left Tramline
+  { zone: 10, x: 0, y: 0, w: 30, h: 90 },
+  { zone: 11, x: 0, y: 90, w: 30, h: 150 },
+  { zone: 12, x: 0, y: 240, w: 30, h: 120 },
 
-  // Mid row
-  { zone: 3,  x: COL[0], y: ROW[1], w: 30,  h: 150 },
-  { zone: 5,  x: COL[1], y: ROW[1], w: 60,  h: 150 },
-  { zone: 1,  x: COL[2], y: ROW[1], w: 60,  h: 150 },
-  { zone: 2,  x: COL[3], y: ROW[1], w: 60,  h: 150 },
-  { zone: 6,  x: COL[4], y: ROW[1], w: 60,  h: 150 },
-  { zone: 4,  x: COL[5], y: ROW[1], w: 30,  h: 150 },
+  // Left Inner
+  { zone: 2, x: 30, y: 0, w: 60, h: 90 },
+  { zone: 6, x: 30, y: 90, w: 60, h: 150 },
+  { zone: 4, x: 30, y: 240, w: 60, h: 120 },
 
-  // Back row
-  { zone: 14, x: COL[0], y: ROW[2], w: 30,  h: 120 },
-  { zone: 15, x: COL[1], y: ROW[2], w: 60,  h: 120 },
-  { zone: 16, x: COL[2], y: ROW[2], w: 60,  h: 120 },
-  { zone: 10, x: COL[3], y: ROW[2], w: 60,  h: 120 },
-  { zone: 11, x: COL[4], y: ROW[2], w: 60,  h: 120 },
-  { zone: 12, x: COL[5], y: ROW[2], w: 30,  h: 120 },
+  // Center Area (spans across the traditional center line)
+  { zone: 7, x: 90, y: 0, w: 120, h: 90 },
+  { zone: 8, x: 90, y: 90, w: 120, h: 150 },
+  { zone: 9, x: 90, y: 240, w: 120, h: 75 },
+  { zone: 13, x: 90, y: 315, w: 120, h: 45 },
+
+  // Right Inner
+  { zone: 1, x: 210, y: 0, w: 60, h: 90 },
+  { zone: 5, x: 210, y: 90, w: 60, h: 150 },
+  { zone: 3, x: 210, y: 240, w: 60, h: 120 },
+
+  // Right Tramline
+  { zone: 16, x: 270, y: 0, w: 30, h: 90 },
+  { zone: 15, x: 270, y: 90, w: 30, h: 150 },
+  { zone: 14, x: 270, y: 240, w: 30, h: 120 },
 ];
 
-// Far player half court zones (mirrored horizontally, rows flipped vertically)
-// Back row at top: 12,11,10,16,15,14
-// Mid row: 4,6,2,1,5,3
-// Front row at bottom (touching net): 13,9,8,7,7,9,13
+// Far player half court zones (mirrored 180 degrees, net at bottom, y=360)
 const FAR_ZONES = [
-  // Back row (top of far half)
-  { zone: 12, x: COL[0], y: 0,   w: 30,  h: 120 },
-  { zone: 11, x: COL[1], y: 0,   w: 60,  h: 120 },
-  { zone: 10, x: COL[2], y: 0,   w: 60,  h: 120 },
-  { zone: 16, x: COL[3], y: 0,   w: 60,  h: 120 },
-  { zone: 15, x: COL[4], y: 0,   w: 60,  h: 120 },
-  { zone: 14, x: COL[5], y: 0,   w: 30,  h: 120 },
+  // Right Tramline visually (maps to Near Left Tramline 10,11,12)
+  { zone: 12, x: 270, y: 0, w: 30, h: 120 },
+  { zone: 11, x: 270, y: 120, w: 30, h: 150 },
+  { zone: 10, x: 270, y: 270, w: 30, h: 90 },
 
-  // Mid row
-  { zone: 4,  x: COL[0], y: 120, w: 30,  h: 150 },
-  { zone: 6,  x: COL[1], y: 120, w: 60,  h: 150 },
-  { zone: 2,  x: COL[2], y: 120, w: 60,  h: 150 },
-  { zone: 1,  x: COL[3], y: 120, w: 60,  h: 150 },
-  { zone: 5,  x: COL[4], y: 120, w: 60,  h: 150 },
-  { zone: 3,  x: COL[5], y: 120, w: 30,  h: 150 },
+  // Right Inner visually (maps to Near Left Inner 2,6,4)
+  { zone: 4, x: 210, y: 0, w: 60, h: 120 },
+  { zone: 6, x: 210, y: 120, w: 60, h: 150 },
+  { zone: 2, x: 210, y: 270, w: 60, h: 90 },
 
-  // Front row (net side, bottom of far half)
-  { zone: 13, x: COL[0], y: 270, w: 30,  h: 90 },
-  { zone: 9,  x: COL[1], y: 270, w: 60,  h: 90 },
-  { zone: 8,  x: COL[2], y: 270, w: 60,  h: 90 },
-  { zone: 7,  x: 150,    y: 270, w: 30,  h: 90 },
-  { zone: 7,  x: 180,    y: 270, w: 30,  h: 90 },
-  { zone: 9,  x: COL[4], y: 270, w: 60,  h: 90 },
-  { zone: 13, x: COL[5], y: 270, w: 30,  h: 90 },
+  // Center visually (maps to Near Center 7,8,9,13)
+  { zone: 13, x: 90, y: 0, w: 120, h: 45 },
+  { zone: 9, x: 90, y: 45, w: 120, h: 75 },
+  { zone: 8, x: 90, y: 120, w: 120, h: 150 },
+  { zone: 7, x: 90, y: 270, w: 120, h: 90 },
+
+  // Left Inner visually (maps to Near Right Inner 1,5,3)
+  { zone: 3, x: 30, y: 0, w: 60, h: 120 },
+  { zone: 5, x: 30, y: 120, w: 60, h: 150 },
+  { zone: 1, x: 30, y: 270, w: 60, h: 90 },
+
+  // Left Tramline visually (maps to Near Right Tramline 16,15,14)
+  { zone: 14, x: 0, y: 0, w: 30, h: 120 },
+  { zone: 15, x: 0, y: 120, w: 30, h: 150 },
+  { zone: 16, x: 0, y: 270, w: 30, h: 90 },
 ];
 
 function CourtLines({ yOff = 0, h = HALF_H, netAtTop = true }) {
   const netY = netAtTop ? yOff : yOff + h;
   const shortServiceY = netAtTop ? yOff + 90 : yOff + h - 90;
-  const longServiceY = netAtTop ? yOff + 240 : yOff + h - 240;
+  const midCourtY = netAtTop ? yOff + 240 : yOff + h - 240;
+  const longServiceY = netAtTop ? yOff + 315 : yOff + h - 315;
 
   return (
     <g>
@@ -92,18 +82,18 @@ function CourtLines({ yOff = 0, h = HALF_H, netAtTop = true }) {
       <line x1="30" y1={yOff} x2="30" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.6" />
       <line x1="270" y1={yOff} x2="270" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.6" />
 
-      {/* Center line (from short service line to back boundary) */}
-      {netAtTop ? (
-        <line x1="150" y1={shortServiceY} x2="150" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
-      ) : (
-        <line x1="150" y1={yOff} x2="150" y2={shortServiceY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
-      )}
+      {/* Inner strip lines (defines the center area width) */}
+      <line x1="90" y1={yOff} x2="90" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
+      <line x1="210" y1={yOff} x2="210" y2={yOff + h} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
 
       {/* Short service line */}
       <line x1="0" y1={shortServiceY} x2={W} y2={shortServiceY} stroke="#FFF" strokeWidth="1.2" strokeOpacity="0.65" />
 
-      {/* Long service line (doubles) */}
-      <line x1="0" y1={longServiceY} x2={W} y2={longServiceY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.45" />
+      {/* Mid court division */}
+      <line x1="0" y1={midCourtY} x2={W} y2={midCourtY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.65" />
+
+      {/* Doubles long service line (drawn only in the center to bound zone 13) */}
+      <line x1="90" y1={longServiceY} x2="210" y2={longServiceY} stroke="#FFF" strokeWidth="0.8" strokeOpacity="0.45" />
     </g>
   );
 }
