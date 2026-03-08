@@ -1,4 +1,5 @@
-const API_BASE = window.electronAPI?.isElectron ? 'http://127.0.0.1:8000/api' : '/api';
+// Electron always talks to local backend
+const API_BASE = 'http://127.0.0.1:8000/api';
 
 // snake_case <-> camelCase conversion
 function toSnake(str) {

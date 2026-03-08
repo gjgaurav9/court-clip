@@ -11,6 +11,7 @@ class Project(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     video_filename = Column(String, nullable=True)
+    video_filepath = Column(String, nullable=True)  # Full local path, Electron only
     video_fps = Column(Float, nullable=True)
     total_frames = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -6,10 +6,11 @@ import LabelForm from './LabelForm';
 import AnnotationTable from './AnnotationTable';
 import Sidebar from './Sidebar';
 import FilterBar from './FilterBar';
+import ShortcutHelp from './ShortcutHelp';
 import useVideoControls from '../hooks/useVideoControls';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import useAnnotations from '../hooks/useAnnotations';
-import { annotations as annotationsApi, projects as projectsApi } from '../api/client';
+import { annotations as annotationsApi, projects as projectsApi, health } from '../api/client';
 
 export default function AnnotationWorkspace() {
   const { id: projectId } = useParams();
@@ -23,6 +24,15 @@ export default function AnnotationWorkspace() {
   const [project, setProject] = useState(null);
   const [projectLoading, setProjectLoading] = useState(true);
   const [filters, setFilters] = useState({ rally: '', player: '', shotType: '' });
+  const [dbDegraded, setDbDegraded] = useState(false);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+
+  // Check database health on mount
+  useEffect(() => {
+    health().then((res) => {
+      if (res.status === 'degraded') setDbDegraded(true);
+    }).catch(() => setDbDegraded(true));
+  }, []);
 
   // Load project info
   useEffect(() => {
@@ -44,12 +54,36 @@ export default function AnnotationWorkspace() {
   // Sync video metadata to server when video loads
   useEffect(() => {
     if (!video.videoLoaded || !projectId) return;
-    projectsApi.update(projectId, {
+    const data = {
       videoFilename: video.videoFileName,
       videoFps: video.fps,
       totalFrames: video.totalFrames,
-    }).catch(() => {});
-  }, [video.videoLoaded, video.videoFileName, video.fps, video.totalFrames, projectId]);
+    };
+    // Save full file path in Electron for auto-reload
+    if (video.videoFilePath) {
+      data.videoFilepath = video.videoFilePath;
+    }
+    projectsApi.update(projectId, data).catch(() => {});
+  }, [video.videoLoaded, video.videoFileName, video.fps, video.totalFrames, video.videoFilePath, projectId]);
+
+  // Auto-load video from saved filepath (Electron only)
+  useEffect(() => {
+    if (video.videoLoaded || !project?.videoFilepath || !window.electronAPI?.fileExists) return;
+    try {
+      if (window.electronAPI.fileExists(project.videoFilepath)) {
+        const fileUrl = window.electronAPI.getFileUrl(project.videoFilepath);
+        const videoEl = video.videoRef.current;
+        if (videoEl) {
+          videoEl.src = fileUrl;
+          videoEl.onloadedmetadata = () => {
+            video.setFps(project.videoFps || 30);
+          };
+        }
+      }
+    } catch {
+      // File no longer exists or not in Electron
+    }
+  }, [project, video.videoLoaded]);
 
   // Filtered annotations
   const filteredAnnotations = useMemo(() => {
@@ -146,6 +180,7 @@ export default function AnnotationWorkspace() {
     onRedo: ann.redo,
     onIncreaseSpeed: video.increaseSpeed,
     onDecreaseSpeed: video.decreaseSpeed,
+    onShowHelp: () => setShowShortcutHelp(true),
   }), [video, handleMarkSegment, handleOpenLabel, ann]);
 
   useKeyboardShortcuts(shortcutHandlers, !showLabelForm);
@@ -175,6 +210,13 @@ export default function AnnotationWorkspace() {
         <span className="text-gray-600">/</span>
         <span className="text-gray-300">{project?.name || `Project ${projectId}`}</span>
       </div>
+
+      {/* DB degraded banner */}
+      {dbDegraded && (
+        <div className="bg-yellow-900/30 border border-yellow-800 text-yellow-300 px-4 py-2 rounded-lg text-sm">
+          Database connection failed. Annotations may not save. Check your .env file.
+        </div>
+      )}
 
       {/* Sync error banner */}
       {ann.syncError && (
@@ -286,12 +328,19 @@ export default function AnnotationWorkspace() {
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">[ ]</kbd> Speed -/+</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Z</kbd> Undo</span>
         <span><kbd className="px-1 py-0.5 bg-gray-800 rounded">Ctrl+Shift+Z</kbd> Redo</span>
+        <button
+          onClick={() => setShowShortcutHelp(true)}
+          className="px-1.5 py-0.5 bg-gray-800 rounded hover:bg-gray-700 transition-colors cursor-pointer"
+          title="Keyboard shortcuts (?)"
+        >?</button>
         {ann.lastSyncTime && (
           <span className="ml-auto text-gray-600">
             Last saved: {ann.lastSyncTime.toLocaleTimeString()}
           </span>
         )}
       </div>
+
+      {showShortcutHelp && <ShortcutHelp onClose={() => setShowShortcutHelp(false)} />}
     </div>
   );
 }

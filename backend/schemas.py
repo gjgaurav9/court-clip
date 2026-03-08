@@ -11,6 +11,7 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: str | None = None
     video_filename: str | None = None
+    video_filepath: str | None = None
     video_fps: float | None = None
     total_frames: int | None = None
 
@@ -19,6 +20,7 @@ class ProjectOut(BaseModel):
     id: int
     name: str
     video_filename: str | None
+    video_filepath: str | None
     video_fps: float | None
     total_frames: int | None
     created_at: datetime

@@ -1,11 +1,15 @@
 import os
+import logging
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./courtclip.db")
+if DATABASE_URL.startswith("sqlite"):
+    logger.warning("DATABASE_URL not set — using local SQLite. Annotations will NOT sync across machines.")
 
 # Render/Neon sometimes provide postgres:// but SQLAlchemy needs postgresql://
 if DATABASE_URL.startswith("postgres://"):

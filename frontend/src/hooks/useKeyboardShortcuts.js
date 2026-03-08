@@ -49,6 +49,9 @@ export default function useKeyboardShortcuts(handlers, enabled = true) {
       } else if (key === ']') {
         e.preventDefault();
         handlers.onIncreaseSpeed?.();
+      } else if (key === '?') {
+        e.preventDefault();
+        handlers.onShowHelp?.();
       }
     };
 

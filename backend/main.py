@@ -1,30 +1,35 @@
 import os
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 
-from database import engine, Base
+from database import engine, Base, SessionLocal, DATABASE_URL
 from routers import projects, annotations, rallies
 
-Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
 
-# Auto-migrate: add new columns if they don't exist yet
-def _migrate():
-    insp = inspect(engine)
-    if insp.has_table("annotations"):
-        existing = {c["name"] for c in insp.get_columns("annotations")}
-        new_cols = {
-            "player_area": "INTEGER",
-            "opponent_area": "INTEGER",
-        }
-        with engine.begin() as conn:
-            for col, typ in new_cols.items():
-                if col not in existing:
-                    conn.execute(text(f'ALTER TABLE annotations ADD COLUMN {col} {typ}'))
 
-_migrate()
+def run_migrations():
+    """Run Alembic migrations to head on startup."""
+    from alembic.config import Config
+    from alembic import command
+
+    alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "alembic.ini"))
+    command.upgrade(alembic_cfg, "head")
+
+
+# Run Alembic migrations for PostgreSQL; fall back to create_all for SQLite dev mode
+if DATABASE_URL.startswith("sqlite"):
+    Base.metadata.create_all(bind=engine)
+else:
+    try:
+        run_migrations()
+    except Exception as e:
+        logger.warning("Alembic migration failed (%s), falling back to create_all", e)
+        Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CourtClip API", version="1.0.0")
 
@@ -45,4 +50,10 @@ app.include_router(rallies.router)
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok"}
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        return {"status": "degraded", "database": str(e)}

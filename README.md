@@ -1,11 +1,11 @@
 # CourtClip
 
-Tennis match annotation tool for frame-by-frame shot tagging. Available as an Electron desktop app (for best video playback performance) and as a web app (Vercel + Render).
+Badminton match annotation tool for frame-by-frame shot tagging. Desktop app built with Electron.
 
 ## Tech Stack
 
 - **Frontend:** React 19, Tailwind CSS, Vite
-- **Backend:** FastAPI, SQLAlchemy
+- **Backend:** FastAPI, SQLAlchemy, Alembic (migrations)
 - **Database:** Neon PostgreSQL (cloud) / SQLite (local fallback)
 - **Desktop:** Electron
 
@@ -25,35 +25,21 @@ cp .env.example .env
 # Edit .env and add your DATABASE_URL
 ```
 
-### 2. Run setup
+### 2. Run setup (first time only)
 
 ```bash
 ./scripts/setup.sh
 ```
 
-### 3a. Desktop app (Electron)
+### 3. Start the app
 
 ```bash
-# Terminal 1 — backend
-cd backend && uvicorn main:app --reload
-
-# Terminal 2 — frontend dev server
-cd frontend && npm run dev
-
-# Terminal 3 — Electron window
-cd electron && npm run dev
+./start.sh
 ```
 
-### 3b. Web app only
+This starts the backend, frontend dev server, and Electron window in one command. Press `Ctrl+C` to stop all processes.
 
-```bash
-# Terminal 1 — backend
-cd backend && uvicorn main:app --reload
-
-# Terminal 2 — frontend
-cd frontend && npm run dev
-# Open http://localhost:5173
-```
+After pulling new code, migrations run automatically on backend startup.
 
 ## Keyboard Shortcuts
 
@@ -61,17 +47,23 @@ cd frontend && npm run dev
 |-----|--------|
 | Space | Play / Pause |
 | Left / Right Arrow | Step back / forward one frame |
-| Shift + Left / Right | Jump 5 seconds |
-| 1-9 | Set playback speed (1x-3x) |
+| Shift + Left / Right | Skip 30 frames |
+| [ ] | Decrease / Increase speed |
+| Enter | Mark segment start/end |
+| Shift + Enter | Edit last label |
+| Ctrl + Z | Undo |
+| Ctrl + Shift + Z | Redo |
+| ? | Show keyboard shortcut help |
 
 ## Project Structure
 
 ```
 court-clip/
-  backend/          # FastAPI server
+  backend/          # FastAPI server + Alembic migrations
   frontend/         # React + Vite app
   electron/         # Electron main process
   scripts/          # Setup and utility scripts
+  start.sh          # Single command to start everything
 ```
 
 ## Building for Production
