@@ -97,6 +97,7 @@ export default function AnnotationWorkspace() {
 
   const handleMarkSegment = useCallback(() => {
     if (!video.videoLoaded) return;
+    video.pause();
     const result = ann.markSegment(video.currentFrame);
     if (result.action === 'end') {
       const segLen = result.frameEnd - result.frameStart;
@@ -111,22 +112,28 @@ export default function AnnotationWorkspace() {
           return;
         }
       }
-      video.pause();
       setPendingSegment({ frameStart: result.frameStart, frameEnd: result.frameEnd });
-      setEditableFrames(false);
-      setShowLabelForm(true);
     }
   }, [video, ann]);
 
   const handleOpenLabel = useCallback(() => {
-    if (ann.annotations.length > 0 && !showLabelForm) {
-      video.pause();
+    if (showLabelForm) return;
+    video.pause();
+    // If there's a freshly marked segment, open a blank form for it
+    if (pendingSegment) {
+      setEditingAnnotation(null);
+      setEditableFrames(false);
+      setShowLabelForm(true);
+      return;
+    }
+    // Otherwise, fall back to editing the last annotation
+    if (ann.annotations.length > 0) {
       const last = ann.annotations[ann.annotations.length - 1];
       setEditingAnnotation(last);
       setEditableFrames(false);
       setShowLabelForm(true);
     }
-  }, [ann.annotations, showLabelForm, video]);
+  }, [ann.annotations, showLabelForm, video, pendingSegment]);
 
   const handleAddShot = useCallback(() => {
     if (!video.videoLoaded) return;
@@ -151,7 +158,7 @@ export default function AnnotationWorkspace() {
 
   const handleCancelLabel = useCallback(() => {
     setShowLabelForm(false);
-    setPendingSegment(null);
+    // Keep pendingSegment so Shift+Enter can re-open a blank form for it
     setEditingAnnotation(null);
     setEditableFrames(false);
     ann.cancelMarking();

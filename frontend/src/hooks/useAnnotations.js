@@ -12,9 +12,11 @@ export default function useAnnotations(projectId) {
   // Segment marking state
   const [markingStart, setMarkingStart] = useState(null);
 
-  // Track projectId to avoid stale closures
+  // Track projectId and annotations to avoid stale closures
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
+  const annotationsRef = useRef(annotations);
+  annotationsRef.current = annotations;
 
   // Load annotations from server on mount
   useEffect(() => {
@@ -83,19 +85,14 @@ export default function useAnnotations(projectId) {
 
   const updateAnnotation = useCallback(async (id, updates) => {
     clearRedoStack();
-    let previous = null;
-    setAnnotations((prev) => {
-      const old = prev.find((a) => a.id === id);
-      if (!old) return prev;
-      previous = { ...old };
-      return prev.map((a) => (a.id === id ? { ...a, ...updates } : a));
-    });
+    const previous = annotationsRef.current.find((a) => a.id === id);
+    if (!previous) return;
+    const previousCopy = { ...previous };
 
-    if (previous) {
-      setUndoStack((stack) => [...stack, { type: 'update', id, previous }]);
-    }
+    setAnnotations((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+    setUndoStack((stack) => [...stack, { type: 'update', id, previous: previousCopy }]);
 
-    if (projectIdRef.current && previous) {
+    if (projectIdRef.current) {
       try {
         setSyncError(null);
         await api.update(projectIdRef.current, id, updates);
@@ -103,29 +100,22 @@ export default function useAnnotations(projectId) {
       } catch (err) {
         setSyncError(err.message);
         // Rollback
-        if (previous) {
-          setAnnotations((prev) => prev.map((a) => (a.id === id ? previous : a)));
-          setUndoStack((stack) => stack.slice(0, -1));
-        }
+        setAnnotations((prev) => prev.map((a) => (a.id === id ? previousCopy : a)));
+        setUndoStack((stack) => stack.slice(0, -1));
       }
     }
   }, [clearRedoStack]);
 
   const deleteAnnotation = useCallback(async (id) => {
     clearRedoStack();
-    let deleted = null;
-    setAnnotations((prev) => {
-      const old = prev.find((a) => a.id === id);
-      if (!old) return prev;
-      deleted = { ...old };
-      return prev.filter((a) => a.id !== id);
-    });
+    const deleted = annotationsRef.current.find((a) => a.id === id);
+    if (!deleted) return;
+    const deletedCopy = { ...deleted };
 
-    if (deleted) {
-      setUndoStack((stack) => [...stack, { type: 'delete', annotation: deleted }]);
-    }
+    setAnnotations((prev) => prev.filter((a) => a.id !== id));
+    setUndoStack((stack) => [...stack, { type: 'delete', annotation: deletedCopy }]);
 
-    if (projectIdRef.current && deleted) {
+    if (projectIdRef.current) {
       try {
         setSyncError(null);
         await api.delete(projectIdRef.current, id);
@@ -133,13 +123,11 @@ export default function useAnnotations(projectId) {
       } catch (err) {
         setSyncError(err.message);
         // Rollback
-        if (deleted) {
-          setAnnotations((prev) => {
-            const restored = [...prev, deleted];
-            return restored.sort((a, b) => a.frameStart - b.frameStart);
-          });
-          setUndoStack((stack) => stack.slice(0, -1));
-        }
+        setAnnotations((prev) => {
+          const restored = [...prev, deletedCopy];
+          return restored.sort((a, b) => a.frameStart - b.frameStart);
+        });
+        setUndoStack((stack) => stack.slice(0, -1));
       }
     }
   }, [clearRedoStack]);
